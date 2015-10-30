@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Text;
 using System.IO;
 using System.Reflection;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace BSPFileReader
 {
@@ -16,14 +14,11 @@ namespace BSPFileReader
         protected Header    header;
         protected string  FileName;
 
-        protected Dictionary<LumpType, dynamic> LumpDefinitions;
-
         public BSP(string fileName)
         {
             if (!File.Exists(fileName))
                 return;
 
-            LoadStructs();
             CreateHeader(fileName);
         }
 
@@ -42,14 +37,22 @@ namespace BSPFileReader
 
                 for (int I = 0; I < header.lumps.Length; I++)
                 {
-                    lump_t lump = header.lumps[I];
-                    lump = new lump_t()
+                    lump_t lump = new lump_t()
                     {
-                        fileoffset          = (int?)br.ReadInt32() ?? 0,
-                        filelength          = (int?)br.ReadInt32() ?? 0,
-                        version             = (int?)br.ReadInt32() ?? 0,
+                        fileoffset          = br.ReadInt32(),
+                        filelength          = br.ReadInt32(),
+                        version             = br.ReadInt32(),
                         uncompressedLength  = br.ReadBytes(4)
                     };
+
+                    if( lump.fileoffset > 0 && lump.filelength > 0 )
+                    {
+                        long curPosition = br.BaseStream.Position;
+                        br.BaseStream.Position = lump.fileoffset;
+                        lump.chunk             = br.ReadBytes(lump.filelength);
+                        br.BaseStream.Position = curPosition;
+                    }
+                    header.lumps[I] = lump;
                 }
 
                 header.mapRevision = br.ReadInt32();
@@ -58,28 +61,46 @@ namespace BSPFileReader
             }
         }
 
-        public lump_t GetLump( int start = 0, int size = 0 )
+        public T[] GetLump<T>() where T : new()
         {
-            return null;
-        }
+            if (!headerReady)
+                return default(T[]);
 
-        public void LoadStructs()
-        {
-            var types = from type in Assembly.GetExecutingAssembly().GetTypes()
-                        from method in type.GetMethods(BindingFlags.Public | BindingFlags.Static)
-                        let attr = method.GetCustomAttribute<SetLumpType>(true)
-                        where attr != null
-                        select attr;
+            LumpType lt           = typeof(T).GetCustomAttribute<SetLumpType>().lump_t;
+            int      chunkSize    = typeof(T).GetCustomAttribute<SetLumpType>().bytes;
+
+            lump_t lumpdefinition = header.lumps[ (int)lt ];
+
+            if (lumpdefinition.chunk.Length == 0)
+                return default(T[]);
 
 
-            LumpDefinitions = new Dictionary<LumpType, dynamic>();
-            foreach (var type in types)
+            byte[] chunk   = lumpdefinition.chunk;
+            int chunkCount = chunk.Length / chunkSize;
+            T[] chunks     = new T[chunkCount];
+
+            using (BinaryReader br = new BinaryReader(new MemoryStream()))
             {
-                Console.WriteLine(type.ToString());
+                br.BaseStream.Write(chunk, 0, chunk.Length);
+                br.BaseStream.Position = 0;
+
+                for (int I = 0; I < chunkCount; I++)
+                {
+                    byte[] curBuffer = br.ReadBytes( chunkSize );
+
+                    IntPtr intPtr = Marshal.AllocHGlobal(curBuffer.Length);
+                    Marshal.Copy(curBuffer, 0, intPtr, curBuffer.Length);
+
+                    T LumpStruct = (T)Marshal.PtrToStructure(intPtr, typeof(T));
+                    chunks[I] = LumpStruct;
+
+                    Marshal.FreeHGlobal(intPtr);
+                }
+                br.Close();
             }
 
+            return chunks;
         }
-
 
         public override string ToString()
         {

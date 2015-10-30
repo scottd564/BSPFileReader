@@ -1,20 +1,23 @@
 ﻿using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace BSPFileReader
 {
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
-    public class SetLumpType : System.Attribute
+    public class SetLumpType : Attribute
     {
-        private LumpType lump_t;
-        public  SetLumpType(LumpType lump_t)
+        public LumpType lump_t;
+        public int bytes;
+        public SetLumpType(LumpType lump_t, int bytesPerBlock )
         {
             this.lump_t = lump_t;
+            this.bytes = bytesPerBlock;
         }
     }
 
-    public enum LumpType
+    public enum LumpType : int
     {
         LUMP_ENTITIES = 0,
         LUMP_PLANES,
@@ -115,6 +118,7 @@ namespace BSPFileReader
         public int    filelength;
         public int    version;
         public byte[] uncompressedLength;   // 4
+        public byte[] chunk;
     }
 
     public struct dplane_t
@@ -140,7 +144,7 @@ namespace BSPFileReader
         public int indexAndDirection; 
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi), SetLumpType( LumpType.LUMP_FACES ) ]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi), SetLumpType( LumpType.LUMP_FACES, 56) ]
     public struct dface_t
     {
         [MarshalAs(UnmanagedType.U2)]
