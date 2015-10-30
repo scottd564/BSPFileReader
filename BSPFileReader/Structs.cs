@@ -1,5 +1,18 @@
-﻿namespace BSPFileReader
+﻿using System;
+using System.Runtime.InteropServices;
+
+namespace BSPFileReader
 {
+
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
+    public class SetLumpType : System.Attribute
+    {
+        private LumpType lump_t;
+        public  SetLumpType(LumpType lump_t)
+        {
+            this.lump_t = lump_t;
+        }
+    }
 
     public enum LumpType
     {
@@ -80,6 +93,7 @@
         LUMP_DISP_MULTIBLEND
     }
 
+    [StructLayout(LayoutKind.Sequential)]
     public struct Vector
     {
         public float X;
@@ -89,9 +103,9 @@
 
     public struct Header
     {
-        public string ident;
-        public int version;
-        public lump_t[] lumps; // 64
+        public string    ident;
+        public int     version;
+        public lump_t[]  lumps;             // 64
         public int mapRevision;
     }
 
@@ -100,7 +114,7 @@
         public int    fileoffset;
         public int    filelength;
         public int    version;
-        public byte[] uncompressedLength; // 4
+        public byte[] uncompressedLength;   // 4
     }
 
     public struct dplane_t
@@ -109,7 +123,6 @@
         public float dist;
         public int type;
     }
-
 
     public struct vertext
     {
@@ -127,25 +140,56 @@
         public int indexAndDirection; 
     }
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi), SetLumpType( LumpType.LUMP_FACES ) ]
     public struct dface_t
     {
-        public ushort planenum;                        // the plane number
-        public byte side;                         // faces opposite to the node's plane direction
-        public byte onNode;                         // 1 of on node, 0 if in leaf
-        public int firstedge;                         // index into surfedges
-        public short numedges;                         // number of surfedges
-        public short texinfo;                         // texture info
-        public short dispinfo;                         // displacement info
-        public short surfaceFogVolumeID;               // ?
-        public byte[]  styles;                         // switchable lighting info, 4
-        public int lightofs;                         // offset into lightmap lump
-        public float area;                         // face area in units^2
-        public int[] LightmapTextureMinsInLuxels;      // texture lighting info, 2
-        public int[] LightmapTextureSizeInLuxels;      // texture lighting info, 2
-        public int origFace;                           // original face this was split from
-        public ushort numPrims;                   // primitives
+        [MarshalAs(UnmanagedType.U2)]
+        public ushort planenum;                         // the plane number
+
+        public byte side;                               // faces opposite to the node's plane direction
+        public byte onNode;                             // 1 of on node, 0 if in leaf
+
+        [MarshalAs(UnmanagedType.I4)]
+        public int firstedge;                           // index into surfedges
+
+        [MarshalAs(UnmanagedType.I2)]
+        public short numedges;                          // number of surfedges
+
+        [MarshalAs(UnmanagedType.I2)]
+        public short texinfo;                           // texture info
+
+        [MarshalAs(UnmanagedType.I2)]
+        public short dispinfo;                          // displacement info
+
+        [MarshalAs(UnmanagedType.I2)]
+        public short surfaceFogVolumeID;                // ?
+
+        [MarshalAs(UnmanagedType.ByValArray)]
+        public byte[]  styles;                          // switchable lighting info, 4
+
+        [MarshalAs(UnmanagedType.I4)]
+        public int lightofs;                            // offset into lightmap lump
+
+        [MarshalAs(UnmanagedType.R4)]
+        public float area;                              // face area in units^2
+
+        [MarshalAs(UnmanagedType.ByValArray)]
+        public int[] LightmapTextureMinsInLuxels;       // texture lighting info, 2
+
+        [MarshalAs(UnmanagedType.ByValArray)]
+        public int[] LightmapTextureSizeInLuxels;       // texture lighting info, 2
+
+        [MarshalAs(UnmanagedType.I4)]
+        public int origFace;                            // original face this was split from
+
+        [MarshalAs(UnmanagedType.U2)]
+        public ushort numPrims;                         // primitives
+
+        [MarshalAs(UnmanagedType.U2)]
         public ushort firstPrimID;
-        public uint smoothingGroups;                   // lightmap smoothing group
+
+        [MarshalAs(UnmanagedType.U4)]
+        public uint smoothingGroups;                    // lightmap smoothing group
     }
 
     public struct dbrush_t

@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Text;
 using System.IO;
+using System.Reflection;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace BSPFileReader
 {
@@ -12,10 +16,14 @@ namespace BSPFileReader
         protected Header    header;
         protected string  FileName;
 
+        protected Dictionary<LumpType, dynamic> LumpDefinitions;
+
         public BSP(string fileName)
         {
             if (!File.Exists(fileName))
                 return;
+
+            LoadStructs();
             CreateHeader(fileName);
         }
 
@@ -54,6 +62,24 @@ namespace BSPFileReader
         {
             return null;
         }
+
+        public void LoadStructs()
+        {
+            var types = from type in Assembly.GetExecutingAssembly().GetTypes()
+                        from method in type.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                        let attr = method.GetCustomAttribute<SetLumpType>(true)
+                        where attr != null
+                        select attr;
+
+
+            LumpDefinitions = new Dictionary<LumpType, dynamic>();
+            foreach (var type in types)
+            {
+                Console.WriteLine(type.ToString());
+            }
+
+        }
+
 
         public override string ToString()
         {
