@@ -9,7 +9,6 @@ namespace BSPFileReader
 
     public class BSP
     {
-
         protected bool headerReady;
         protected Header    header;
         protected string  FileName;
