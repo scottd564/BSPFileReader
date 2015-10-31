@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+
+using Newtonsoft.Json;
 
 namespace BSPFileReader
 {
@@ -17,7 +20,8 @@ namespace BSPFileReader
         {
             if (!File.Exists(fileName))
                 return;
-
+      
+            Directory.CreateDirectory("data/" + fileName.Substring( 0, fileName.Length - 3 ));
             CreateHeader(fileName);
         }
 
@@ -99,6 +103,50 @@ namespace BSPFileReader
             }
 
             return chunks;
+        }
+
+        public T[] DumpLump<T>() where T : new()
+        {
+
+            T[] lumpdata = GetLump<T>();
+
+            string filePath = "data/" + FileName.Substring(0, FileName.Length - 3) + "/" + typeof(T).Name + ".json";
+            string data;
+
+            data = JsonConvert.SerializeObject(lumpdata);
+            File.WriteAllText(filePath, data, Encoding.Default);
+
+            return lumpdata;
+        }
+
+        public void GetBrushData()
+        {
+            BrushObject[] brushes;
+
+            dbrush_t[]     brush      = GetLump<dbrush_t>();
+            dbrushside_t[] brushsides = GetLump<dbrushside_t>();
+            dplane_t[]     planes     = GetLump<dplane_t>();
+
+            foreach( dbrush_t b in brush )
+            {
+                // A brush
+                Dictionary<dbrushside_t, dplane_t> brushToPlane = new Dictionary<dbrushside_t, dplane_t>();
+
+                // Get Brush sides for this brush.
+                dbrushside_t[] thisBrushSides = new dbrushside_t[b.numsides];
+                Array.Copy(brushsides, b.firstside, thisBrushSides, 0, b.numsides);
+
+                // Get Planes for each brush side.
+                foreach( dbrushside_t bs in thisBrushSides )
+                {
+                    /* A Brush Side
+                       Plane for brush side */
+                    dplane_t thisPlane = planes[bs.planenum];
+                    // brushToPlane.Add( bs, thisPlane );
+                }
+
+            }
+
         }
 
         public override string ToString()

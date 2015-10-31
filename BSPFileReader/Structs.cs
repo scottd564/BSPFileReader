@@ -33,6 +33,11 @@ namespace BSPFileReader
         public byte[] chunk;
     }
 
+    public class BrushObject
+    {
+
+    }
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi) ]
     public struct Vector
     {
